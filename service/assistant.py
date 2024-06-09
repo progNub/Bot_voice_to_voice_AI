@@ -1,14 +1,15 @@
-import asyncio
-
 from loader import client_openai
 
 
 class Assistant:
 
-    def __init__(self, client=client_openai, assistant=None, thread=None):
+    def __init__(self, assistant_id=None, thread_id=None, client=client_openai):
         self.client = client
-        self._assistant = assistant
-        self._thread = thread
+        self._assistant_id = assistant_id
+        self._thread_id = thread_id
+
+        self._assistant = None
+        self._thread = None
         self._message = None
         self._run = None
 
@@ -28,21 +29,30 @@ class Assistant:
     async def create_message(self, message):
         if message is not None:
             self._message = await (self.client.beta.threads.messages.
-                                   create(thread_id=self._thread.id, role="user", content=message))
+                                   create(thread_id=await self.get_thread_id(), role="user", content=message))
 
             return self._message
-        else:
-            raise Exception("Message can't be empty.")
 
     async def do_run(self):
         self._run = await (self.client.beta.threads.runs.
-                           create_and_poll(thread_id=self._thread.id, assistant_id=self._assistant.id))
+                           create_and_poll(thread_id=await self.get_thread_id(),
+                                           assistant_id=await self.get_assistant_id()))
 
         return self._run
 
+    async def get_assistant_id(self):
+        if self._assistant_id is None:
+            return self._assistant.id
+        return self._assistant_id
+
+    async def get_thread_id(self):
+        if self._thread is None:
+            return self._thread_id
+        return self._thread.id
+
     async def get_answer_messages(self):
         if self._run.status == 'completed':
-            messages = await self.client.beta.threads.messages.list(thread_id=self._thread.id, limit=1)
+            messages = await self.client.beta.threads.messages.list(thread_id=await self.get_thread_id(), limit=1)
             return messages
         return
 
@@ -54,6 +64,3 @@ class Assistant:
     async def send_message(self, question: str):
         await self.create_message(question)
         await self.do_run()
-
-
-assistant = asyncio.run(Assistant().initialize())
