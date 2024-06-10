@@ -8,6 +8,7 @@ from database.models import User
 from loader import dp, bot
 from service.assistant import Assistant
 from service.transcription import get_transcription, get_voice_from_text
+from service.utils import registration
 
 
 @dp.message(CommandStart())
@@ -15,13 +16,9 @@ async def start_handler(message: types.Message) -> None:
     """return information about the bot"""
     information = (f"hello {message.from_user.username}.\n"
                    f"You can ask any question the bot and receive answer from chatGPT")
+
     if await User.is_user_exists(message.from_user.id) is None:
-        assistant = await Assistant().initialize()
-        assistant_id = await assistant.get_assistant_id()
-        thread_id = await assistant.get_thread_id()
-        telegram_id = message.from_user.id
-        user = User(telegram_id=telegram_id, assistant_id=assistant_id, thread_id=thread_id)
-        await user.save()
+        await registration(message.from_user.id)
 
     await message.answer(f"{information} !")
 
@@ -31,6 +28,10 @@ async def voice_handler(message: types.Message) -> None:
     await message.answer('Please wait, your message is being processed...')
 
     user = await User.get_user(message.from_user.id)
+
+    if user is None:
+        user = await registration(message.from_user.id)
+
     assistant = Assistant(user.assistant_id, user.thread_id)
 
     file = await bot.get_file(message.voice.file_id)
