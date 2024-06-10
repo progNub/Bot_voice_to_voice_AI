@@ -1,18 +1,18 @@
 [tool.poetry]
-name = "bot-voice-to-voice-ai"
-version = "0.1.0"
+name = "poetry install"
+version = "3.11"
 description = ""
 authors = ["Roman <roma.makhunov@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.12"
-aiogram = "^3.7.0"
+
+python = "3.11.9"
 pydantic-settings = "^2.3.1"
+aiogram = "^3.7.0"
 openai = "^1.31.1"
 sqlalchemy = "^2.0.30"
 aiosqlite = "^0.20.0"
-
 
 
 [build-system]

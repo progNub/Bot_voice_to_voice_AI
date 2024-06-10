@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 async def init_db():
     print("Initializing database")
-    db_conn.initialize("sqlite+aiosqlite:///db.sqlite3")
+    db_conn.initialize("sqlite+aiosqlite:///data/db.sqlite3")
 
     # Create all models  that were inherited from base
     async with db_conn.engine.begin() as conn:
