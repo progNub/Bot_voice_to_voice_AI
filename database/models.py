@@ -11,11 +11,10 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     telegram_id = Column(Integer, unique=True, nullable=False)
-    assistant_id = Column(String(255))
     thread_id = Column(String(255))
 
     def __str__(self):
-        return f"User <id:{self.id}, id_t:{self.id_user_assistant}, id_as:{self.assistant_id}, id_th:{self.thread_id}>"
+        return f"User <id:{self.id}, id_tel:{self.id_user_assistant}, id_thread:{self.thread_id}>"
 
     def __repr__(self):
         return self.__str__()
@@ -46,3 +45,4 @@ class User(Base):
         async with db_conn.session as session:
             session.delete(self)
             await session.commit()
+

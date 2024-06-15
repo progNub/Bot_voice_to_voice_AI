@@ -1,7 +1,6 @@
+import uuid
 from aiogram import types, F
-
 from aiogram.filters import CommandStart
-
 from aiogram.types.input_file import BufferedInputFile
 
 from database.models import User
@@ -16,7 +15,6 @@ async def start_handler(message: types.Message) -> None:
     """return information about the bot"""
     information = (f"hello {message.from_user.username}.\n"
                    f"You can ask any question the bot and receive answer from chatGPT")
-
     if await User.is_user_exists(message.from_user.id) is None:
         await registration(message.from_user.id)
 
@@ -32,7 +30,7 @@ async def voice_handler(message: types.Message) -> None:
     if user is None:
         user = await registration(message.from_user.id)
 
-    assistant = Assistant(user.assistant_id, user.thread_id)
+    assistant = Assistant(user.thread_id)
 
     file = await bot.get_file(message.voice.file_id)
 
@@ -46,7 +44,7 @@ async def voice_handler(message: types.Message) -> None:
 
     voice_gpt = await get_voice_from_text(text)
 
-    output_voice = BufferedInputFile(voice_gpt, 'answer.mp3')
+    output_voice = BufferedInputFile(voice_gpt, f'{uuid.uuid4()}-answer.mp3')
 
     await message.answer_voice(output_voice)
 

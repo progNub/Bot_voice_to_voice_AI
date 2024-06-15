@@ -8,7 +8,7 @@ class AsyncConnection:
         self._session = None
 
     def initialize(self, dsn: str):
-        """Например: 'sqlite+aiosqlite:///db.sqlite3'"""
+        """Example: 'sqlite+aiosqlite:///db.sqlite3'"""
         self._engine = create_async_engine(dsn, echo=True)
         self._session = AsyncSession(self._engine)
 

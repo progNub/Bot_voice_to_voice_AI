@@ -1,9 +1,10 @@
 from loader import client_openai
+from settings import setting
 
 
 class Assistant:
 
-    def __init__(self, assistant_id=None, thread_id=None, client=client_openai):
+    def __init__(self, thread_id=None, assistant_id=setting.assistant_key, client=client_openai):
         self.client = client
         self._assistant_id = assistant_id
         self._thread_id = thread_id
@@ -14,26 +15,25 @@ class Assistant:
         self._run = None
 
     async def initialize(self):
-        await self.create_assistant()
-        await self.create_thread()
+        await self._create_thread()
         return self
 
-    async def create_assistant(self, model="gpt-4o", name="Mr Smith"):
+    async def _create_assistant(self, model="gpt-4o", name="Mr Smith"):
         self._assistant = await self.client.beta.assistants.create(model=model, name=name)
         return self._assistant
 
-    async def create_thread(self):
+    async def _create_thread(self):
         self._thread = await self.client.beta.threads.create()
         return self._thread
 
-    async def create_message(self, message):
+    async def _create_message(self, message):
         if message is not None:
             self._message = await (self.client.beta.threads.messages.
                                    create(thread_id=await self.get_thread_id(), role="user", content=message))
 
             return self._message
 
-    async def do_run(self):
+    async def _do_run(self):
         self._run = await (self.client.beta.threads.runs.
                            create_and_poll(thread_id=await self.get_thread_id(),
                                            assistant_id=await self.get_assistant_id()))
@@ -54,7 +54,6 @@ class Assistant:
         if self._run.status == 'completed':
             messages = await self.client.beta.threads.messages.list(thread_id=await self.get_thread_id(), limit=1)
             return messages
-        return
 
     async def get_last_answer(self) -> str:
         last_message = await self.get_answer_messages()
@@ -62,5 +61,5 @@ class Assistant:
         return text
 
     async def send_message(self, question: str):
-        await self.create_message(question)
-        await self.do_run()
+        await self._create_message(question)
+        await self._do_run()
