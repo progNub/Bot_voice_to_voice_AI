@@ -11,7 +11,7 @@
 - Navigate to the root directory of the project.
 - Run the commands:
 
-    - poetry install
-    - poetry run main.py
+    - pip install -r requirements.txt
+    - python main.py
 
 
