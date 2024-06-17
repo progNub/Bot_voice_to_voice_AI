@@ -1,5 +1,6 @@
 import io
 import uuid
+
 from loader import client_openai
 
 
@@ -8,7 +9,7 @@ def _get_valid_format_voice(voice: io.BytesIO) -> tuple[str, bytes]:
     return result
 
 
-async def get_transcription(voice) -> str:
+async def get_transcription(voice: io.BytesIO) -> str:
     """Accepts voice and generates text from it"""
     formatted_voice = _get_valid_format_voice(voice)
     transcription = await (client_openai.audio.transcriptions.

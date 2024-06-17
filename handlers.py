@@ -1,12 +1,10 @@
-import uuid
 from aiogram import types, F
 from aiogram.filters import CommandStart
-from aiogram.types.input_file import BufferedInputFile
 
 from database.models import User
-from loader import dp, bot
+from loader import dp
 from service.assistant import Assistant
-from service.transcription import get_transcription, get_voice_from_text
+from service.chat.voice import VoiceChat
 from service.utils import registration
 
 
@@ -31,22 +29,11 @@ async def voice_handler(message: types.Message) -> None:
         user = await registration(message.from_user.id)
 
     assistant = Assistant(user.thread_id)
+    chat = VoiceChat(assistant)
+    await chat.send_message(message.voice)
+    voice_answer = await chat.get_answer()
 
-    file = await bot.get_file(message.voice.file_id)
-
-    voice = await bot.download_file(file.file_path)
-
-    text = await get_transcription(voice)
-
-    await assistant.send_message(text)
-
-    text = await assistant.get_last_answer()
-
-    voice_gpt = await get_voice_from_text(text)
-
-    output_voice = BufferedInputFile(voice_gpt, f'{uuid.uuid4()}-answer.mp3')
-
-    await message.answer_voice(output_voice)
+    await message.answer_voice(voice_answer)
 
 
 @dp.message()

@@ -7,12 +7,8 @@ COPY requirements.txt /app/
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 
-COPY .env /app/.env
 
-
-COPY database/* /app/database/
-COPY service/* /app/service/
-COPY loader.py handlers.py settings.py main.py /app/
+COPY . .
 
 
 ENTRYPOINT ["python", "main.py"]
