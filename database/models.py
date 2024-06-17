@@ -1,17 +1,19 @@
-from sqlalchemy import Column, Integer, String
 from typing import Self
+
+from sqlalchemy import String
+from sqlalchemy import select
+from sqlalchemy.orm import Mapped, mapped_column
+
 from database.base import Base
 from database.connector import db_conn
-
-from sqlalchemy import select
 
 
 class User(Base):
     __tablename__ = "users"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    telegram_id = Column(Integer, unique=True, nullable=False)
-    thread_id = Column(String(255))
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    telegram_id: Mapped[str] = mapped_column(String(30), unique=True)
+    thread_id: Mapped[str] = mapped_column(String(255))
+    value: Mapped[str] = mapped_column(String(255), nullable=True)
 
     def __str__(self):
         return f"User <id:{self.id}, id_tel:{self.id_user_assistant}, id_thread:{self.thread_id}>"
@@ -45,4 +47,3 @@ class User(Base):
         async with db_conn.session as session:
             session.delete(self)
             await session.commit()
-
