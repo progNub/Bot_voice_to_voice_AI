@@ -4,6 +4,7 @@ from aiogram.filters import CommandStart
 from database.models import User
 from loader import dp
 from service.assistant import Assistant
+from service.chat.text import TextChat
 from service.chat.voice import VoiceChat
 from service.utils import registration
 
@@ -19,7 +20,7 @@ async def start_handler(message: types.Message) -> None:
     await message.answer(f"{information} !")
 
 
-@dp.message(F.content_type.in_({'voice'}))
+@dp.message(F.content_type.in_({types.ContentType.VOICE}))
 async def voice_handler(message: types.Message) -> None:
     await message.answer('Please wait, your message is being processed...')
 
@@ -36,6 +37,21 @@ async def voice_handler(message: types.Message) -> None:
     await message.answer_voice(voice_answer)
 
 
+@dp.message((F.content_type.in_({types.ContentType.TEXT})))
+async def voice_handler(message: types.Message) -> None:
+    user = await User.get_user(message.from_user.id)
+
+    if user is None:
+        user = await registration(message.from_user.id)
+
+    assistant = Assistant(user.thread_id)
+    chat = TextChat(assistant)
+    await chat.send_message(message.text)
+    answer = await chat.get_answer()
+
+    await message.answer(answer)
+
+
 @dp.message()
 async def voice_handler(message: types.Message) -> None:
-    await message.answer(f"I can processing only messages type voice!")
+    await message.answer("Sorry, I can only process text and voice messages.")

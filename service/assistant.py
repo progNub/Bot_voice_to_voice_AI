@@ -40,6 +40,9 @@ class Assistant:
         return self._run
 
     async def get_run(self):
+        self._run = await (self.client.beta.threads.runs.
+                           retrieve(thread_id=await self.get_thread_id(), run_id=self._run.id))
+
         return self._run
 
     async def get_assistant_id(self):
