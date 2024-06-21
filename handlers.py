@@ -3,8 +3,8 @@ from aiogram.filters import CommandStart
 
 from database.models import User
 from loader import dp
-from service.assistant import Assistant
-from service.chat.text import TextChat
+from service.assistant.assistantValue import AssistantValue
+from service.chat.text import ValueTextChat
 from service.chat.voice import VoiceChat
 from service.utils import registration
 
@@ -24,13 +24,13 @@ async def start_handler(message: types.Message) -> None:
 async def voice_handler(message: types.Message) -> None:
     await message.answer('Please wait, your message is being processed...')
 
-    user = await User.get_user(message.from_user.id)
+    user = await User.get(telegram_id=message.from_user.id)
 
     if user is None:
         user = await registration(message.from_user.id)
 
-    assistant = Assistant(user.thread_id)
-    chat = VoiceChat(assistant)
+    assistant = AssistantValue(user.thread_id)
+    chat = VoiceChat(assistant, message.from_user.id)
     await chat.send_message(message.voice)
     voice_answer = await chat.get_answer()
 
@@ -38,20 +38,20 @@ async def voice_handler(message: types.Message) -> None:
 
 
 @dp.message((F.content_type.in_({types.ContentType.TEXT})))
-async def voice_handler(message: types.Message) -> None:
-    user = await User.get_user(message.from_user.id)
+async def text_handler(message: types.Message) -> None:
+    user = await User.get(telegram_id=message.from_user.id)
 
     if user is None:
         user = await registration(message.from_user.id)
 
-    assistant = Assistant(user.thread_id)
-    chat = TextChat(assistant)
+    assistant = AssistantValue(user.thread_id)
+    chat = ValueTextChat(assistant, message.from_user.id)
     await chat.send_message(message.text)
     answer = await chat.get_answer()
-
-    await message.answer(answer)
+    if answer:
+        await message.answer(answer)
 
 
 @dp.message()
-async def voice_handler(message: types.Message) -> None:
+async def other_message_handler(message: types.Message) -> None:
     await message.answer("Sorry, I can only process text and voice messages.")

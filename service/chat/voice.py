@@ -4,12 +4,12 @@ from aiogram import types
 from aiogram.types import BufferedInputFile
 
 from loader import bot
-from service.chat.text import TextChat
+from service.chat.text import ValueTextChat
 
 from service.transcription import get_transcription, get_voice_from_text
 
 
-class VoiceChat(TextChat):
+class VoiceChat(ValueTextChat):
 
     @staticmethod
     async def _prepare_message(message_voice: types.Voice) -> str:
@@ -24,6 +24,9 @@ class VoiceChat(TextChat):
 
     async def get_answer(self) -> BufferedInputFile:
         text_answer = await super().get_answer()
+
         voice = await get_voice_from_text(text_answer)
         voice_answer = BufferedInputFile(voice, f'{uuid.uuid4()}-answer-.mp3')
         return voice_answer
+
+

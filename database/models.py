@@ -1,49 +1,54 @@
-from typing import Self
+from typing import List
 
-from sqlalchemy import String
-from sqlalchemy import select
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import String, Table, ForeignKey, Column, select, Integer
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from database.base import Base
+from database.base import Base, Manager
 from database.connector import db_conn
 
+user_values_table = Table(
+    "user_values_table",
+    Base.metadata,
+    Column("user_left_id", ForeignKey("users.id"), primary_key=True),
+    Column("value_right_id", ForeignKey("values.id"), primary_key=True), )
 
-class User(Base):
+
+class User(Base, Manager):
     __tablename__ = "users"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    telegram_id: Mapped[str] = mapped_column(String(30), unique=True)
+    telegram_id: Mapped[int] = mapped_column(Integer, unique=True)
     thread_id: Mapped[str] = mapped_column(String(255))
-    value: Mapped[str] = mapped_column(String(255), nullable=True)
+    values: Mapped[List['Value']] = relationship(secondary=user_values_table, back_populates="users",
+                                                 lazy="selectin")
 
     def __str__(self):
-        return f"User <id:{self.id}, id_tel:{self.id_user_assistant}, id_thread:{self.thread_id}>"
+        return f"User <id:{self.id}, id_tel:{self.telegram_id}, id_thread:{self.thread_id}>"
 
     def __repr__(self):
         return self.__str__()
 
-    @staticmethod
-    async def is_user_exists(telegram_id):
+    async def add_values(self, values: List[str]) -> None:
         async with db_conn.session as session:
-            query = select(User).where(User.telegram_id == telegram_id)
-
+            model_values = [Value(description=item) for item in values]
+            query = select(User).where(User.id == self.id)
             result = await session.execute(query)
-            return result.scalar()
+            user = result.scalar()
+            if user:
+                session.add_all(model_values)
 
-    @staticmethod
-    async def get_user(telegram_id):
-        async with db_conn.session as session:
-            query = select(User).where(User.telegram_id == telegram_id)
-            user = await session.execute(query)
-            return user.scalar_one_or_none()
+                user.values.extend(model_values)
+                await session.commit()
 
-    async def save(self) -> Self:
-        async with db_conn.session as session:
-            session.add(self)
-            await session.commit()
-            await session.refresh(self)
-        return self
 
-    async def delete(self):
-        async with db_conn.session as session:
-            session.delete(self)
-            await session.commit()
+class Value(Base, Manager):
+    __tablename__ = "values"
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    description: Mapped[str] = mapped_column(String(255), unique=True)
+    users: Mapped[List['User']] = relationship(secondary=user_values_table, back_populates="values",
+                                               lazy="selectin")
+
+    def __str__(self):
+        return f"Value <id:{self.id}, value:{self.value}>"
+
+    def __repr__(self):
+        return self.__str__()

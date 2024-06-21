@@ -1,7 +1,7 @@
 import io
 from abc import ABC, abstractmethod
 
-from service.assistant import Assistant
+from service.assistant.assistant import Assistant
 
 
 class BaseChat(ABC):

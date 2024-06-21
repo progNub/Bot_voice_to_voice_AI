@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     bot_token: str
     openai_key: str
     assistant_key: str
+    async_db_url: str
 
 
 setting = Settings()
