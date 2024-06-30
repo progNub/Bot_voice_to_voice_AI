@@ -12,11 +12,11 @@ from service.utils import registration
 @dp.message(CommandStart())
 async def start_handler(message: types.Message) -> None:
     """return information about the bot"""
-    information = (f"hello {message.from_user.username}.\n"
-                   f"You can ask any question the bot and receive answer from chatGPT")
-    if await User.is_user_exists(message.from_user.id) is None:
+    if await User.get_object_or_none(telegram_id=message.from_user.id):
         await registration(message.from_user.id)
 
+    information = (f"hello {message.from_user.username}.\n"
+                   f"You can ask any question the bot and receive answer from chatGPT")
     await message.answer(f"{information} !")
 
 
@@ -24,8 +24,7 @@ async def start_handler(message: types.Message) -> None:
 async def voice_handler(message: types.Message) -> None:
     await message.answer('Please wait, your message is being processed...')
 
-    user = await User.get(telegram_id=message.from_user.id)
-
+    user = await User.get_object_or_none(telegram_id=message.from_user.id)
     if user is None:
         user = await registration(message.from_user.id)
 
@@ -39,8 +38,7 @@ async def voice_handler(message: types.Message) -> None:
 
 @dp.message((F.content_type.in_({types.ContentType.TEXT})))
 async def text_handler(message: types.Message) -> None:
-    user = await User.get(telegram_id=message.from_user.id)
-
+    user = await User.get_object_or_none(telegram_id=message.from_user.id)
     if user is None:
         user = await registration(message.from_user.id)
 

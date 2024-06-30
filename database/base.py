@@ -1,6 +1,4 @@
-from typing import Self
-
-from sqlalchemy import select, Sequence
+from sqlalchemy import select
 from sqlalchemy.orm import declarative_base
 
 from database.connector import db_conn
@@ -15,34 +13,25 @@ async def init_db():
 
 
 class Manager:
+    connection = db_conn
 
-    async def save(cls) -> "Self":
-        async with db_conn.session as session:
-            session.add(cls)
-            await session.commit()
-            await session.refresh(cls)
-        return cls
-
-    @classmethod
-    async def get(cls, **kwargs) -> Self | None:
-        async with db_conn.session as session:
-            query = select(cls)
-            for key, value in kwargs.items():
-                if not hasattr(cls, key):
-                    raise AttributeError(f"Class {cls.__name__} has no attribute '{key}'")
-                query = query.where(getattr(cls, key) == value)
-            result = await session.execute(query)
-            result = result.scalar_one_or_none()
-            return result
+    async def save(self):
+        async with  self.connection.session as sess:
+            sess.add(self)
+            await sess.commit()
+            await sess.refresh(self)
+            return self
 
     @classmethod
-    async def all(cls) -> Sequence[Self]:
-        async with db_conn.session as session:
-            result = await session.execute(select(cls))
-            return result.scalars().all()
+    async def get_object_or_none(cls, session=None, **kwargs):
+        async with (session or cls.connection.session) as sess:
+            query = select(cls).filter_by(**kwargs)
+            result = await sess.execute(query)
+            if obj := result.scalar_one_or_none():
+                return obj
 
-    async def delete(self):
-        async with db_conn.session as session:
-            await session.delete(self)
+    async def delete(self, session=None) -> bool:
+        async with (session or self.connection.session) as sess:
+            sess.delete(self)
             await session.commit()
             return True

@@ -2,13 +2,13 @@ import json
 
 from database.models import User
 from service.assistant.assistant import Assistant
-from .data_for_create_assistants import data_assistant_value
+from .data_for_create_assistants import CreateAssistantData, CheckValueFunction
 
 
 class AssistantValue(Assistant):
 
     async def _create_assistant(self, model="gpt-4o", name="Mr Smith", **kwargs):
-        assistant = await super()._create_assistant(model, name, **data_assistant_value, **kwargs)
+        assistant = await super()._create_assistant(model, name, **CreateAssistantData.get_params(), **kwargs)
         return assistant
 
     async def is_call_functions(self):
@@ -18,17 +18,18 @@ class AssistantValue(Assistant):
         return False
 
     async def is_valid_value(self, value: str) -> bool:
-        content = f"""Is the following statement a traditional human value and free from misspellings or nonsense?
-                    your answer can only be true or false.' Operator: {value}"""
-        messages = [{"role": "user",
-                     "content": content}]
-
-        response = await self.client.chat.completions.create(model="gpt-4o", messages=messages, temperature=0.2,
-                                                             max_tokens=1)
-        response_message = response.choices[0].message.content
-        print(response_message)
-
-        return response_message.lower() == "true"
+        messages = [{"role": "user", "content": value}]
+        functions = [CheckValueFunction.get_function()]
+        tool_choice = {"type": "function", "function": {"name": CheckValueFunction.name}}
+        try:
+            response = await self.client.chat.completions.create(model="gpt-4o", messages=messages, tools=functions,
+                                                                 tool_choice=tool_choice)
+            for tool in response.choices[0].message.tool_calls:
+                if tool.function.name == CheckValueFunction.name:
+                    is_human_value: str = json.loads(tool.function.arguments).get('is_human_value')
+                    return is_human_value.lower() == "true"
+        except Exception as e:
+            print("Failed to check value:", e)
 
     async def pre_save_value(self) -> list:
         if not await self.is_call_functions():
@@ -38,7 +39,7 @@ class AssistantValue(Assistant):
         valid_values = []
 
         for tool in self._run.required_action.submit_tool_outputs.tool_calls:
-            if tool.function.name == "save_value":
+            if tool.function.name == CreateAssistantData.name_function:
                 user_value = json.loads(tool.function.arguments).get('value')
                 is_valid = await self.is_valid_value(user_value)
                 if is_valid:
@@ -62,6 +63,6 @@ class AssistantValue(Assistant):
         values = await self.pre_save_value()
 
         if values:
-            user: User = await User.get(telegram_id=telegram_id)
-            user = await user.add_values(values)
+            user: User = await User.get_object_or_none(telegram_id=telegram_id)
+            await user.add_values(values)
         return values

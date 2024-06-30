@@ -1,25 +1,53 @@
-from typing import List
-
-from sqlalchemy import String, Table, ForeignKey, Column, select, Integer
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import String, ForeignKey, Integer, select, Table, Column
+from sqlalchemy.orm import Mapped, relationship, mapped_column, selectinload
 
 from database.base import Base, Manager
-from database.connector import db_conn
 
-user_values_table = Table(
-    "user_values_table",
-    Base.metadata,
-    Column("user_left_id", ForeignKey("users.id"), primary_key=True),
-    Column("value_right_id", ForeignKey("values.id"), primary_key=True), )
+user_value_table = Table(
+    "user_values", Base.metadata,
+    Column("user_id", ForeignKey("user.id"), primary_key=True),
+    Column("value_id", ForeignKey("value.id"), primary_key=True), )
 
 
-class User(Base, Manager):
-    __tablename__ = "users"
+class UserManager(Manager):
+
+    async def add_values(self: 'User', values: list[str]) -> None:
+        async with self.connection.session as session:
+            # Getting current user with his values
+            user = (await session.execute(
+                select(User).options(selectinload(User.values)).filter(User.id == self.id))).scalar_one()
+
+            # Determine values which doesn't exist
+            user_value_names = {user_value.name.lower() for user_value in user.values}
+            values_for_add = {value.lower() for value in values if value not in user_value_names}
+
+            if values_for_add:
+                # Getting all values from DB
+                existing_values = (await session.execute(
+                    select(Value).where(Value.name.in_(values_for_add)))).scalars().all()
+                existing_value_names = {value.name.lower() for value in existing_values}
+
+                for value in values_for_add:
+                    if value in existing_value_names:
+                        # The value exists into DB, that just create connection
+                        existing_value = next(ev for ev in existing_values if ev.name == value)
+                        user.values.append(existing_value)
+
+                    else:
+                        # The value isn't exists, create value and to make new connection
+                        new_value = Value(name=value)
+                        session.add(new_value)
+                        user.values.append(new_value)
+
+                await session.commit()
+
+
+class User(Base, UserManager):
+    __tablename__ = "user"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     telegram_id: Mapped[int] = mapped_column(Integer, unique=True)
     thread_id: Mapped[str] = mapped_column(String(255))
-    values: Mapped[List['Value']] = relationship(secondary=user_values_table, back_populates="users",
-                                                 lazy="selectin")
+    values: Mapped[list["Value"]] = relationship(back_populates='users', secondary=user_value_table, lazy='selectin')
 
     def __str__(self):
         return f"User <id:{self.id}, id_tel:{self.telegram_id}, id_thread:{self.thread_id}>"
@@ -27,28 +55,15 @@ class User(Base, Manager):
     def __repr__(self):
         return self.__str__()
 
-    async def add_values(self, values: List[str]) -> None:
-        async with db_conn.session as session:
-            model_values = [Value(description=item) for item in values]
-            query = select(User).where(User.id == self.id)
-            result = await session.execute(query)
-            user = result.scalar()
-            if user:
-                session.add_all(model_values)
 
-                user.values.extend(model_values)
-                await session.commit()
-
-
-class Value(Base, Manager):
-    __tablename__ = "values"
+class Value(Base):
+    __tablename__ = "value"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    description: Mapped[str] = mapped_column(String(255), unique=True)
-    users: Mapped[List['User']] = relationship(secondary=user_values_table, back_populates="values",
-                                               lazy="selectin")
+    name: Mapped[str] = mapped_column(String(255), unique=True)
+    users: Mapped[list["User"]] = relationship(back_populates='values', secondary=user_value_table, lazy='selectin')
 
     def __str__(self):
-        return f"Value <id:{self.id}, value:{self.value}>"
+        return f"Value <id:{self.id}, name:{self.name}>"
 
     def __repr__(self):
         return self.__str__()
