@@ -8,7 +8,7 @@ from service.assistant.assistantValue import AssistantValue
 from service.chat.text import ValueTextChat
 from service.chat.voice import VoiceChat
 from service.registration import registration
-
+from service.amplitude import send_event
 
 @dp.message(CommandStart())
 async def start_handler(message: types.Message) -> None:
@@ -19,6 +19,7 @@ async def start_handler(message: types.Message) -> None:
     information = (f"hello {message.from_user.username}.\n"
                    f"You can ask any question the bot and receive answer from chatGPT")
     await message.answer(f"{information} !")
+    send_event('bot_started', message.from_user)
 
 
 @dp.message(F.content_type.in_({types.ContentType.VOICE}))
@@ -35,6 +36,7 @@ async def voice_handler(message: types.Message) -> None:
     voice_answer = await chat.get_answer()
 
     await message.reply_voice(voice_answer)
+    send_event('voice_message_processed', message.from_user)
 
 
 @dp.message((F.content_type.in_({types.ContentType.TEXT})))
@@ -49,6 +51,7 @@ async def text_handler(message: types.Message) -> None:
     answer = await chat.get_answer()
     if answer:
         await message.reply(answer)
+    send_event('text_message_processed', message.from_user)
 
 
 @dp.message((F.content_type.in_({types.ContentType.PHOTO})))
@@ -57,8 +60,10 @@ async def text_handler(message: types.Message) -> None:
     vision = Vision(message.photo)
     answer = await vision.analise_emotions()
     await message.reply(answer)
+    send_event('photo_analyzed', message.from_user)
 
 
 @dp.message()
 async def other_message_handler(message: types.Message) -> None:
     await message.answer("Sorry, I can process text, voice and photo messages.")
+    send_event('unsupported_message_received', message.from_user)

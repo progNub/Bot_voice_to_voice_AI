@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     openai_key: str
     assistant_key: str
     async_db_url: str
+    amplitude_api_key: str
 
 
 setting = Settings()
