@@ -1,4 +1,5 @@
 import base64
+import logging
 import uuid
 from pathlib import Path
 from typing import BinaryIO
@@ -7,6 +8,8 @@ import aiofiles
 from aiogram.types import PhotoSize
 
 from loader import client_openai as client, bot
+
+logger = logging.getLogger(__name__)
 
 
 class VisionManager:
@@ -74,8 +77,8 @@ class Vision(VisionManager):
                              }, ], }],
                 max_tokens=300, )
         except Exception as e:
-            print(f'Error in analyze_emotions: {e}')
-            return f'Error in analyze_emotions: {e}'
+            logger.error(f'Error in analyze_emotions: {e}')
+            return f'Error in analyze_emotions'
 
         answer_message = response.choices[0].message.content
 

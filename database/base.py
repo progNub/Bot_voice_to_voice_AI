@@ -1,3 +1,5 @@
+import logging
+
 from sqlalchemy import select
 from sqlalchemy.orm import declarative_base
 
@@ -6,9 +8,11 @@ from settings import setting
 
 Base = declarative_base()
 
+logger = logging.getLogger(__name__)
+
 
 async def init_db():
-    print("Initializing database")
+    logger.info("Initializing database")
     db_conn.initialize(setting.async_db_url)
 
 

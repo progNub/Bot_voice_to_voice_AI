@@ -1,8 +1,11 @@
 import json
+import logging
 
 from database.models import User
 from service.assistant.assistant import Assistant
 from .data_for_create_assistants import CreateAssistantData, CheckValueFunction
+
+logger = logging.getLogger(__name__)
 
 
 class AssistantValue(Assistant):
@@ -29,7 +32,7 @@ class AssistantValue(Assistant):
                     is_human_value: str = json.loads(tool.function.arguments).get('is_human_value')
                     return is_human_value.lower() == "true"
         except Exception as e:
-            print("Failed to check value:", e)
+            logger.error("Failed to check value:", e)
 
     async def pre_save_value(self) -> list:
         if not await self.is_call_functions():
@@ -55,7 +58,7 @@ class AssistantValue(Assistant):
                     tool_outputs=tool_outputs)
 
             except Exception as e:
-                print("Failed to submit tool outputs:", e)
+                logger.error("Failed to submit tool outputs:", e)
 
         return valid_values
 
