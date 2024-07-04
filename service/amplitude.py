@@ -1,17 +1,12 @@
-import atexit
 import logging
 import time
-from concurrent.futures import ThreadPoolExecutor
 
 from aiogram.types import User
 from amplitude import BaseEvent
 
-from loader import client_amplitude
+from loader import client_amplitude, thread_executor
 
 logger = logging.getLogger(__name__)
-
-executor = ThreadPoolExecutor(max_workers=5)
-atexit.register(lambda: executor.shutdown(wait=True))
 
 
 def send_event(event_type, user: User):
@@ -26,4 +21,4 @@ def send_event(event_type, user: User):
 
 
 def send_event_in_thread(event_type, user: User):
-    executor.submit(lambda: send_event(event_type, user))
+    thread_executor.submit(lambda: send_event(event_type, user))
