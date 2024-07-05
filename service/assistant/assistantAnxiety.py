@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 class AssistantAnxiety(Assistant):
 
-    def __init__(self, file_path="service/assistant/data/anxiety.docx"):
+    def __init__(self, file_path="service/assistant/data_for_vectors/anxiety.docx"):
         if not Path(file_path).exists():
             raise FileNotFoundError(f"The file {file_path} does not exist.")
 
