@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     assistant_key: str
     async_db_url: str
     amplitude_api_key: str
+    redis_storage_url: str
 
 
 setting = Settings()
