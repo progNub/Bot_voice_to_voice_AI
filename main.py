@@ -3,7 +3,7 @@ import logging
 
 from database.base import init_db
 from loader import bot, dp
-import handlers
+from handlers import handlers
 
 logger = logging.getLogger(__name__)
 

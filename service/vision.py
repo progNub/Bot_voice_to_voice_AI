@@ -5,9 +5,10 @@ from pathlib import Path
 from typing import BinaryIO
 
 import aiofiles
-from aiogram.types import PhotoSize
+from aiogram.types import PhotoSize, BufferedInputFile
 
 from loader import client_openai as client, bot
+from service.transcription import get_voice_from_text
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +59,7 @@ class Vision(VisionManager):
 
     def __init__(self, photo: list[PhotoSize]):
         super().__init__(photo=photo)
+        self.answer: str = ''
 
     async def analise_emotions(self) -> str:
         base64_image = await self.get_encoded_file()
@@ -80,6 +82,11 @@ class Vision(VisionManager):
             logger.error(f'Error in analyze_emotions: {e}')
             return f'Error in analyze_emotions'
 
-        answer_message = response.choices[0].message.content
+        self.answer = response.choices[0].message.content
 
-        return answer_message
+        return self.answer
+
+    async def get_voice_answer(self):
+        voice = await get_voice_from_text(self.answer)
+        voice_answer = BufferedInputFile(voice, f'{uuid.uuid4()}-answer-.mp3')
+        return voice_answer
