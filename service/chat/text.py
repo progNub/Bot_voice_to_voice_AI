@@ -1,7 +1,6 @@
 from aiogram.types import Message
 
 from loader import bot
-from service.assistant.assistant import Assistant
 from service.assistant.assistantValue import AssistantValue
 from service.transcription import get_transcription
 
@@ -23,15 +22,22 @@ class TextChat:
 
     async def _prepare_answer(self):
         run = await self.assistant.get_run()
-        tread_id = await self.assistant.get_thread_id()
+        thread_id = await self.assistant.get_thread_id()
 
         if run.status == 'completed':
-            messages = await (self.assistant.client.beta.threads.messages.
-                              list(thread_id=tread_id, limit=1))
-            text = messages.data[0].content[0].text.value
+            messages = await self.assistant.client.beta.threads.messages.list(thread_id=thread_id, limit=1)
+            message_content = messages.data[0].content[0].text
+            annotations = message_content.annotations
+
+            for annotation in annotations:
+                if file_citation := getattr(annotation, 'file_citation', None):
+                    cited_file = await self.assistant.client.files.retrieve(file_citation.file_id)
+                    message_content.value = message_content.value.replace(annotation.text,
+                                                                          f'<source: {cited_file.filename}>')
+            text = message_content.value
             return text
         else:
-            return "Sorry I couldn't get answer from server."
+            return "Sorry, I couldn't get an answer from the server."
 
     async def send_message(self, message: Message) -> None:
         text = await self._prepare_message(message)
